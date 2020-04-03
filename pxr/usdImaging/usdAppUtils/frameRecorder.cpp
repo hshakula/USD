@@ -55,7 +55,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 
 UsdAppUtilsFrameRecorder::UsdAppUtilsFrameRecorder() :
-    _imageWidth(960u),
+    _imageWidth(0u),
     _complexity(1.0f),
     _colorCorrectionMode("disabled"),
     _purposes({UsdGeomTokens->default_, UsdGeomTokens->proxy})
@@ -132,6 +132,33 @@ _ComputeCameraToFrameStage(const UsdStagePtr& stage, UsdTimeCode timeCode,
     return gfCamera;
 }
 
+static bool InitGfCamera(
+        const UsdStagePtr& stage,
+        const UsdTimeCode timeCode,
+        const UsdGeomCamera& usdCamera,
+        const UsdRenderSettings& usdRenderSettings,
+        GfCamera* gfCamera)
+{
+    if (usdCamera) {
+        *gfCamera = usdCamera.GetCamera(timeCode);
+        return true;
+    } else if (usdRenderSettings) {
+        auto cameraRel = usdRenderSettings.GetCameraRel();
+
+        SdfPathVector targets;
+        if (cameraRel.GetTargets(&targets) && targets.size() == 1) {
+            auto& cameraPath = targets[0];
+            UsdGeomCamera camera = UsdGeomCamera::Get(stage, cameraPath);
+            if (camera) {
+                *gfCamera = camera.GetCamera(timeCode);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 bool
 UsdAppUtilsFrameRecorder::Record(
         const UsdStagePtr& stage,
@@ -158,9 +185,7 @@ UsdAppUtilsFrameRecorder::Record(
     // XXX: If the camera's aspect ratio is animated, then a range of calls to
     // this function may generate a sequence of images with different sizes.
     GfCamera gfCamera;
-    if (usdCamera) {
-        gfCamera = usdCamera.GetCamera(timeCode);
-    } else {
+    if (!InitGfCamera(stage, timeCode, usdCamera, _renderSettings, &gfCamera)) {
         gfCamera = _ComputeCameraToFrameStage(stage, timeCode, _purposes);
     }
     float aspectRatio = gfCamera.GetAspectRatio();
@@ -168,10 +193,33 @@ UsdAppUtilsFrameRecorder::Record(
         aspectRatio = 1.0f;
     }
 
-    const size_t imageHeight = std::max<size_t>(
-        static_cast<size_t>(static_cast<float>(_imageWidth) / aspectRatio),
-        1u);
-    const GfVec2i renderResolution(_imageWidth, imageHeight);
+    GfVec2i renderResolution;
+    if (_imageWidth != 0u) {
+        const size_t imageHeight = std::max<size_t>(
+            static_cast<size_t>(static_cast<float>(_imageWidth) / aspectRatio),
+            1u);
+        renderResolution = GfVec2i(_imageWidth, imageHeight);
+    } else if (!_renderSettings ||
+               !_renderSettings.GetResolutionAttr().Get(&renderResolution, timeCode)) {
+        int width = GetDefaultImageWidth();
+        int height = std::max(int(float(width) / aspectRatio), 1);
+        renderResolution = GfVec2i(width, height);
+    }
+
+    if (_renderSettings) {
+        UsdPrim renderSettingsPrim = _renderSettings.GetPrim();
+        auto authoredProperties = renderSettingsPrim.GetAuthoredProperties();
+        for (auto& property : authoredProperties) {
+            if (property.Is<UsdAttribute>()) {
+                UsdAttribute attr = property.As<UsdAttribute>();
+
+                VtValue value;
+                if (attr.Get(&value, timeCode) && !value.IsEmpty()) {
+                    _imagingEngine.SetRendererSetting(property.GetName(), value);
+                }
+            }
+        }
+    }
 
     const GfFrustum frustum = gfCamera.GetFrustum();
     const GfVec3d cameraPos = frustum.GetPosition();
@@ -183,8 +231,8 @@ UsdAppUtilsFrameRecorder::Record(
         GfVec4d(
             0.0,
             0.0,
-            static_cast<double>(_imageWidth),
-            static_cast<double>(imageHeight)));
+            static_cast<double>(renderResolution[0]),
+            static_cast<double>(renderResolution[1])));
 
     GlfSimpleLight cameraLight(
         GfVec4f(cameraPos[0], cameraPos[1], cameraPos[2], 1.0f));
@@ -221,7 +269,7 @@ UsdAppUtilsFrameRecorder::Record(
     drawTarget->AddAttachment("depth",
         GL_DEPTH_COMPONENT, GL_FLOAT, GL_DEPTH_COMPONENT32F);
 
-    glViewport(0, 0, _imageWidth, imageHeight);
+    glViewport(0, 0, renderResolution[0], renderResolution[1]);
 
     const GLfloat CLEAR_DEPTH[1] = { 1.0f };
     const UsdPrim& pseudoRoot = stage->GetPseudoRoot();

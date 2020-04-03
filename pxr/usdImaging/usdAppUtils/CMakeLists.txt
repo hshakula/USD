@@ -16,6 +16,7 @@ pxr_library(usdAppUtils
         tf
         usd
         usdGeom
+        usdRender
         usdImagingGL
         ${Boost_PYTHON_LIBRARY}
 
@@ -27,6 +28,7 @@ pxr_library(usdAppUtils
 
     PUBLIC_CLASSES
         camera
+        renderSettings
         frameRecorder
 
     PYTHON_CPPFILES
@@ -35,6 +37,7 @@ pxr_library(usdAppUtils
     PYMODULE_CPPFILES
         module.cpp
         wrapCamera.cpp
+        wrapRenderSettings.cpp
         wrapFrameRecorder.cpp
 
     PYMODULE_FILES

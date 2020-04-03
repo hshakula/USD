@@ -34,6 +34,7 @@
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usd/timeCode.h"
 #include "pxr/usd/usdGeom/camera.h"
+#include "pxr/usd/usdRender/settings.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 
 #include <string>
@@ -58,6 +59,12 @@ public:
     USDAPPUTILS_API
     UsdAppUtilsFrameRecorder();
 
+    /// Gets the default image width that will be used if the user of class
+    /// does not call SetImageWidth with correct value 
+    static size_t GetDefaultImageWidth() {
+        return 960u;
+    }
+
     /// Gets the ID of the Hydra renderer plugin that will be used for
     /// recording.
     TfToken GetCurrentRendererId() const {
@@ -73,8 +80,6 @@ public:
     ///
     /// The height of the recorded image will be computed using this value and
     /// the aspect ratio of the camera used for recording.
-    ///
-    /// The default image width is 960 pixels.
     void SetImageWidth(const size_t imageWidth) {
         if (imageWidth == 0u) {
             TF_CODING_ERROR("Image width cannot be zero");
@@ -97,6 +102,14 @@ public:
         _colorCorrectionMode = colorCorrectionMode;
     }
 
+    /// Sets the render settings to be used for recording.
+    ///
+    /// If imageWidth was not explicitly specified through SetImageWidth,
+    /// then resolution will be queried from renderSettings.
+    void SetRenderSettings(UsdRenderSettings const& renderSettings) {
+        _renderSettings = renderSettings;
+    }
+
     /// Sets the UsdGeomImageable purposes to be used for rendering
     ///
     /// We will __always__ include "default" purpose, and by default,
@@ -111,7 +124,9 @@ public:
     /// The recorded image will represent the view from \p usdCamera looking at
     /// the imageable prims on USD stage \p stage at time \p timeCode.
     ///
-    /// If \p usdCamera is not a valid camera, a camera will be computed
+    /// If \p usdCamera is not a valid camera, a camera from
+    /// renderSettings will be used. If renderSettings does not reference
+    /// or reference an invalid camera, a camera will be computed
     /// to automatically frame the stage geometry.
     ///
     /// Returns true if the image was generated and written successfully, or
@@ -125,6 +140,7 @@ public:
 
 private:
     UsdImagingGLEngine _imagingEngine;
+    UsdRenderSettings _renderSettings;
     size_t _imageWidth;
     float _complexity;
     TfToken _colorCorrectionMode;

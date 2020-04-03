@@ -1,5 +1,5 @@
 //
-// Copyright 2016 Pixar
+// Copyright 2019 Pixar
 //
 // Licensed under the Apache License, Version 2.0 (the "Apache License")
 // with the following modification; you may not use this file except in
@@ -21,34 +21,23 @@
 // KIND, either express or implied. See the Apache License for the specific
 // language governing permissions and limitations under the Apache License.
 //
-////////////////////////////////////////////////////////////////////////
-
 #include "pxr/pxr.h"
-#include "pxr/base/tf/registryManager.h"
-#include "pxr/base/tf/scriptModuleLoader.h"
-#include "pxr/base/tf/token.h"
+#include "pxr/usdImaging/usdAppUtils/renderSettings.h"
 
-#include <vector>
+#include <boost/python.hpp>
+#include <boost/python/def.hpp>
 
-PXR_NAMESPACE_OPEN_SCOPE
+using namespace boost::python;
 
-TF_REGISTRY_FUNCTION(TfScriptModuleLoader) {
-    // List of direct dependencies for this library.
-    const std::vector<TfToken> reqs = {
-        TfToken("garch"),
-        TfToken("gf"),
-        TfToken("glf"),
-        TfToken("sdf"),
-        TfToken("tf"),
-        TfToken("usd"),
-        TfToken("usdGeom"),
-        TfToken("usdRender"),
-        TfToken("usdImagingGL")
-    };
-    TfScriptModuleLoader::GetInstance().
-        RegisterLibrary(TfToken("usdAppUtils"), TfToken("pxr.UsdAppUtils"), reqs);
+
+PXR_NAMESPACE_USING_DIRECTIVE
+
+
+void
+wrapRenderSettings()
+{
+    def(
+        "GetRenderSettings",
+        UsdAppUtilsGetRenderSettings,
+        (arg("stage"), arg("paths")));
 }
-
-PXR_NAMESPACE_CLOSE_SCOPE
-
-

@@ -92,6 +92,15 @@ def main():
             'more than one extra purpose, either use commas with no spaces or '
             'quote the argument and separate purposes by commas and/or spaces.'))
 
+    parser.add_argument('--renderSettings', action='store', type=str,
+        dest='renderSettings', metavar='PRIMPATH[,PRIMPATH...]',
+        help=(
+            'The Ordered list of paths-to-RenderSettings prims. If more than one'
+            'primitive path is given then all referenced RenderSettings primitives'
+            'would be combined into one RenderSettings primitive.'
+            'To specify multiple paths, either use commas with no spaces or'
+            'quote the argument and separate paths by commas and/or spaces.'))
+
     UsdAppUtils.cameraArgs.AddCmdlineArgs(parser)
     UsdAppUtils.framesArgs.AddCmdlineArgs(parser)
     UsdAppUtils.complexityArgs.AddCmdlineArgs(parser)
@@ -99,17 +108,15 @@ def main():
     UsdAppUtils.rendererArgs.AddCmdlineArgs(parser)
 
     parser.add_argument('--imageWidth', '-w', action='store', type=int,
-        default=960,
         help=(
             'Width of the output image. The height will be computed from this '
-            'value and the camera\'s aspect ratio (default=%(default)s)'))
+            'value and the camera\'s aspect ratio (default={})'
+            .format(UsdAppUtils.FrameRecorder.GetDefaultImageWidth())))
 
     args = parser.parse_args()
 
     UsdAppUtils.framesArgs.ValidateCmdlineArgs(parser, args,
         frameFormatArgName='outputImagePath')
-
-    args.imageWidth = max(args.imageWidth, 1)
 
     purposes = args.purposes.replace(',', ' ').split()
 
@@ -132,20 +139,26 @@ def main():
     # Get the camera at the given path (or with the given name).
     usdCamera = UsdAppUtils.GetCameraAtPath(usdStage, args.camera)
 
-    # Frame-independent initialization.
-    # Note that the size of the widget doesn't actually affect the size of the
-    # output image. We just pass it along for cleanliness.
-    glWidget = _SetupOpenGLContext(args.imageWidth, args.imageWidth)
+    renderSettingsPaths = []
+    if args.renderSettings:
+        renderSettingsPaths = args.renderSettings.replace(',', ' ').split()
+    usdRenderSettings = UsdAppUtils.GetRenderSettings(usdStage, renderSettingsPaths)
+
+    # Frame-independent initialization
+    glWidget = _SetupOpenGLContext()
 
     frameRecorder = UsdAppUtils.FrameRecorder()
     if args.rendererPlugin:
         frameRecorder.SetRendererPlugin(args.rendererPlugin.id)
-    frameRecorder.SetImageWidth(args.imageWidth)
+    if args.imageWidth:
+        frameRecorder.SetImageWidth(args.imageWidth)
     frameRecorder.SetComplexity(args.complexity.value)
     frameRecorder.SetColorCorrectionMode(args.colorCorrectionMode)
     frameRecorder.SetIncludedPurposes(purposes)
+    frameRecorder.SetRenderSettings(usdRenderSettings)
 
     _Msg('Camera: %s' % usdCamera.GetPath().pathString)
+    _Msg('Render settings: %s' % usdRenderSettings.GetPath().pathString)
     _Msg('Renderer plugin: %s' % frameRecorder.GetCurrentRendererId())
 
     for timeCode in args.frames:
