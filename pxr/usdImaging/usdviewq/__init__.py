@@ -119,6 +119,15 @@ class Launcher(object):
                             dest='primPath', type=str,
                             help='A prim path to initially select and frame')
 
+        parser.add_argument('--renderSettings', action='store', type=str,
+        dest='renderSettings', metavar='PRIMPATH[,PRIMPATH...]',
+        help=(
+            'The Ordered list of paths-to-RenderSettings prims. If more than one'
+            'primitive path is given then all referenced RenderSettings primitives'
+            'would be combined into one RenderSettings primitive.'
+            'To specify multiple paths, either use commas with no spaces or'
+            'quote the argument and separate paths by commas and/or spaces.'))
+
         UsdAppUtils.cameraArgs.AddCmdlineArgs(parser,
             altHelpText=(
                 "Which camera to set the view to on open - may be given as "

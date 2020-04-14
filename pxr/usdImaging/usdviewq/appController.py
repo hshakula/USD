@@ -120,6 +120,7 @@ class UsdviewDataModel(RootDataModel):
 
         self._selectionDataModel = SelectionDataModel(self)
         self._viewSettingsDataModel = ViewSettingsDataModel(self, settings2)
+        self.usdRenderSettings = None
 
     @property
     def selection(self):
@@ -475,6 +476,11 @@ class AppController(QtCore.QObject):
                 self._propSelectionChanged)
             self._dataModel.selection.signalComputedPropSelectionChanged.connect(
                 self._propSelectionChanged)
+
+            renderSettingsPaths = []
+            if parserData.renderSettings:
+                renderSettingsPaths = parserData.renderSettings.replace(',', ' ').split()
+            self._dataModel.usdRenderSettings = UsdAppUtils.GetRenderSettings(stage, renderSettingsPaths)
 
             self._initialSelectPrim = self._dataModel.stage.GetPrimAtPath(
                 parserData.primPath)

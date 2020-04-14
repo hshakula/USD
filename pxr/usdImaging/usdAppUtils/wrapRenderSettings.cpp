@@ -40,4 +40,7 @@ wrapRenderSettings()
         "GetRenderSettings",
         UsdAppUtilsGetRenderSettings,
         (arg("stage"), arg("paths")));
+    def("SetRendererSettings",
+        UsdAppUtilsSetRendererSettings,
+        (arg("engine"), arg("renderSettings"), arg("timeCode")));
 }

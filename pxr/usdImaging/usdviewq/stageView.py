@@ -38,6 +38,7 @@ from pxr import Glf
 from pxr import Sdf, Usd, UsdGeom
 from pxr import UsdImagingGL
 from pxr import CameraUtil
+from pxr import UsdAppUtils
 
 from .common import (RenderModes, ColorCorrectionModes, ShadedRenderModes, Timer,
                      ReportMetricSize, GetInstanceIndicesForIds,
@@ -921,6 +922,9 @@ class StageView(QtOpenGL.QGLWidget):
         return self._renderer
 
     def _handleRendererChanged(self, rendererId):
+        if self._dataModel.usdRenderSettings:
+            UsdAppUtils.SetRendererSettings(self._renderer, self._dataModel.usdRenderSettings, Usd.TimeCode.Default())
+
         self._rendererDisplayName = self.GetRendererDisplayName(rendererId)
         self._rendererAovName = "color"
         self._renderPauseState = False

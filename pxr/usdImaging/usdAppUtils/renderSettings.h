@@ -34,6 +34,7 @@
 
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usdRender/settings.h"
+#include "pxr/usdImaging/usdImagingGL/engine.h"
 
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -61,6 +62,12 @@ UsdRenderSettings UsdAppUtilsGetRenderSettings(
         const UsdStagePtr& stage,
         std::vector<SdfPath> const& paths);
 
+/// Sets render settings for the given timeCode with clearing all previous render settings
+USDAPPUTILS_API
+void UsdAppUtilsSetRendererSettings(
+        UsdImagingGLEngine& engine,
+        UsdRenderSettings const& renderSettings,
+        UsdTimeCode const& timeCode = UsdTimeCode::Default());
 
 PXR_NAMESPACE_CLOSE_SCOPE
 

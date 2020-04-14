@@ -107,4 +107,30 @@ UsdRenderSettings UsdAppUtilsGetRenderSettings(
     }
 }
 
+void UsdAppUtilsSetRendererSettings(
+        UsdImagingGLEngine& engine,
+        UsdRenderSettings const& renderSettings,
+        UsdTimeCode const& timeCode) {
+    // Set all renderer settings to default
+    auto renderSettingsList = engine.GetRendererSettingsList();
+    for (auto renderSetting : renderSettingsList) {
+        engine.SetRendererSetting(renderSetting.key, renderSetting.defValue);
+    }
+
+    if (renderSettings) {
+        UsdPrim renderSettingsPrim = renderSettings.GetPrim();
+        auto authoredProperties = renderSettingsPrim.GetAuthoredProperties();
+        for (auto& property : authoredProperties) {
+            if (property.Is<UsdAttribute>()) {
+                UsdAttribute attr = property.As<UsdAttribute>();
+
+                VtValue value;
+                if (attr.Get(&value, timeCode) && !value.IsEmpty()) {
+                    engine.SetRendererSetting(property.GetName(), value);
+                }
+            }
+        }
+    }
+}
+
 PXR_NAMESPACE_CLOSE_SCOPE

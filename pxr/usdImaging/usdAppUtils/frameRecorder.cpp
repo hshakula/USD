@@ -27,6 +27,7 @@
 
 #include "pxr/pxr.h"
 #include "pxr/usdImaging/usdAppUtils/frameRecorder.h"
+#include "pxr/usdImaging/usdAppUtils/renderSettings.h"
 
 #include "pxr/base/gf/camera.h"
 #include "pxr/base/gf/math.h"
@@ -206,20 +207,7 @@ UsdAppUtilsFrameRecorder::Record(
         renderResolution = GfVec2i(width, height);
     }
 
-    if (_renderSettings) {
-        UsdPrim renderSettingsPrim = _renderSettings.GetPrim();
-        auto authoredProperties = renderSettingsPrim.GetAuthoredProperties();
-        for (auto& property : authoredProperties) {
-            if (property.Is<UsdAttribute>()) {
-                UsdAttribute attr = property.As<UsdAttribute>();
-
-                VtValue value;
-                if (attr.Get(&value, timeCode) && !value.IsEmpty()) {
-                    _imagingEngine.SetRendererSetting(property.GetName(), value);
-                }
-            }
-        }
-    }
+    UsdAppUtilsSetRendererSettings(_imagingEngine, _renderSettings, timeCode);
 
     const GfFrustum frustum = gfCamera.GetFrustum();
     const GfVec3d cameraPos = frustum.GetPosition();
